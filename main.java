@@ -622,3 +622,51 @@ final class FlipSession {
     }
 
     void recordFlip(BigDecimal wager, BigDecimal payout) {
+        flipCount++;
+        sessionWagered = sessionWagered.add(wager);
+        sessionPayouts = sessionPayouts.add(payout);
+    }
+
+    public String getSessionId() { return sessionId; }
+    public String getPlayerId() { return playerId; }
+    public long getStartedAtMs() { return startedAtMs; }
+    public long getFlipCount() { return flipCount; }
+    public BigDecimal getSessionWagered() { return sessionWagered; }
+    public BigDecimal getSessionPayouts() { return sessionPayouts; }
+    public BigDecimal getSessionNet() { return sessionPayouts.subtract(sessionWagered); }
+}
+
+final class FlipInuAuditLog {
+    private final long timestampMs;
+    private final long roundId;
+    private final String eventType;
+    private final String payload;
+
+    FlipInuAuditLog(long timestampMs, long roundId, String eventType, String payload) {
+        this.timestampMs = timestampMs;
+        this.roundId = roundId;
+        this.eventType = eventType;
+        this.payload = payload;
+    }
+
+    public long getTimestampMs() { return timestampMs; }
+    public long getRoundId() { return roundId; }
+    public String getEventType() { return eventType; }
+    public String getPayload() { return payload; }
+}
+
+final class FlipInuRateLimiter {
+    private final Map<String, Long> lastFlipByPlayer = new ConcurrentHashMap<>();
+    private final long minIntervalMs;
+
+    FlipInuRateLimiter(long minIntervalMs) {
+        this.minIntervalMs = minIntervalMs;
+    }
+
+    boolean allowFlip(String playerId) {
+        long now = System.currentTimeMillis();
+        Long last = lastFlipByPlayer.put(playerId, now);
+        if (last == null) return true;
+        return (now - last) >= minIntervalMs;
+    }
+}
