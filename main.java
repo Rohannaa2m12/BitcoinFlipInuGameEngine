@@ -1390,3 +1390,51 @@ final class BitcoinFlipInuGameEngineV2 {
         FlipOutcome outcome2 = e2.resolve();
         int wins = (choice1 == outcome1 ? 1 : 0) + (choice2 == outcome2 ? 1 : 0);
         BigDecimal payoutEth = BigDecimal.ZERO;
+        if (wins == 1) payoutEth = TreasuryMath.weiToEth(TreasuryMath.winPayoutWei(TreasuryMath.ethToWei(wagerEth)));
+        if (wins == 2) payoutEth = TreasuryMath.weiToEth(TreasuryMath.winPayoutWei(TreasuryMath.ethToWei(wagerEth))).multiply(new BigDecimal("1.9"));
+        delegate.getOrCreatePlayer(playerId, displayName);
+        return new DoubleFlipRound(roundId, playerId, wagerEth, choice1, choice2, outcome1, outcome2, wins, payoutEth, now);
+    }
+
+    public List<RecentStreakRecord> getRecentStreaks() {
+        synchronized (recentStreaks) {
+            return new ArrayList<>(recentStreaks);
+        }
+    }
+
+    public BitcoinFlipInuGameEngine getDelegate() { return delegate; }
+    public FlipInuV2Config getConfig() { return config; }
+}
+
+/** V2: Migrates legacy stats into V2 format (stub for future persistence). */
+final class V2MigrationHelper {
+    static String legacyPlayerIdToV2(String legacyId) {
+        if (legacyId == null) return "v2_anon";
+        return "v2_" + legacyId;
+    }
+
+    static boolean isV2PlayerId(String id) {
+        return id != null && id.startsWith("v2_");
+    }
+
+    static BFIStateSnapshot toStateSnapshot(BitcoinFlipInuGameEngine engine) {
+        BitcoinFlipInuGameEngine.GlobalStats s = engine.getGlobalStats();
+        return new BFIStateSnapshot(
+                engine.getGlobalRoundId(),
+                s.totalWageredEth,
+                s.totalPayoutsEth,
+                s.uniquePlayers,
+                System.currentTimeMillis()
+        );
+    }
+}
+
+/** V2: Exports leaderboard as JSON-like string for API use. */
+final class FlipInuV2Export {
+    static String leaderboardToJsonLines(List<LeaderboardEntry> entries) {
+        StringBuilder sb = new StringBuilder();
+        for (LeaderboardEntry e : entries) {
+            sb.append(String.format("{\"rank\":%d,\"playerId\":\"%s\",\"displayName\":\"%s\",\"wins\":%d,\"flips\":%d,\"wageredEth\":\"%s\",\"netProfitEth\":\"%s\",\"winRatePct\":%.2f}%n",
+                    e.getRank(), escape(e.getPlayerId()), escape(e.getDisplayName()),
+                    e.getWins(), e.getFlips(), e.getWageredEth().toPlainString(),
+                    e.getNetProfitEth().toPlainString(), e.getWinRatePct()));
