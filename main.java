@@ -1102,3 +1102,51 @@ final class FlipInuWebhookPayload {
         return String.format("{\"roundId\":%d,\"playerId\":\"%s\",\"won\":%s,\"payoutEth\":\"%s\"}",
                 roundId, playerId, won, payoutEth.toPlainString());
     }
+}
+
+final class FlipInuRateCalculator {
+    static double effectiveHouseEdgeBps() {
+        return BFIConstants.HOUSE_EDGE_BPS;
+    }
+
+    static double playerWinRateExpected() {
+        return 0.5;
+    }
+
+    static BigDecimal maxPayoutForWager(BigDecimal wagerEth) {
+        return TreasuryMath.weiToEth(TreasuryMath.winPayoutWei(TreasuryMath.ethToWei(wagerEth)));
+    }
+}
+
+final class SatoshiFlipperBranding {
+    static final String NAME = "Satoshi Flipper";
+    static final String TAGLINE = "Bitcoin Flip Inu — Double your sats or lose them.";
+    static final String VERSION = "1.0.0-BFI";
+
+    static String fullTitle() {
+        return NAME + " · " + TAGLINE;
+    }
+}
+
+final class FlipInuTokenNames {
+    static final String HEADS_SYMBOL = "HEADS";
+    static final String TAILS_SYMBOL = "TAILS";
+    static final String NATIVE_SYMBOL = "ETH";
+}
+
+final class FlipInuErrorCodes {
+    static final int ERR_ZERO_BET = 1;
+    static final int ERR_BET_TOO_LOW = 2;
+    static final int ERR_BET_TOO_HIGH = 3;
+    static final int ERR_PAUSED = 4;
+    static final int ERR_INVALID_PLAYER = 5;
+    static final int ERR_TRANSFER_FAILED = 6;
+}
+
+final class FlipInuValidationResult {
+    private final boolean valid;
+    private final int errorCode;
+    private final String message;
+
+    FlipInuValidationResult(boolean valid, int errorCode, String message) {
+        this.valid = valid;
