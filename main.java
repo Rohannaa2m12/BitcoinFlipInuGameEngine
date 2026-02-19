@@ -574,3 +574,51 @@ final class LeaderboardEntry {
     public BigDecimal getWageredEth() { return wageredEth; }
     public BigDecimal getNetProfitEth() { return netProfitEth; }
     public double getWinRatePct() { return winRatePct; }
+}
+
+final class FlipInuConfig {
+    private final BigDecimal minBetEth;
+    private final BigDecimal maxBetEth;
+    private final int houseEdgeBps;
+    private final int winMultiplierBps;
+
+    FlipInuConfig(BigDecimal minBetEth, BigDecimal maxBetEth, int houseEdgeBps, int winMultiplierBps) {
+        this.minBetEth = minBetEth;
+        this.maxBetEth = maxBetEth;
+        this.houseEdgeBps = houseEdgeBps;
+        this.winMultiplierBps = winMultiplierBps;
+    }
+
+    public static FlipInuConfig defaultConfig() {
+        return new FlipInuConfig(
+                BFIConstants.MIN_BET_ETH,
+                BFIConstants.MAX_BET_ETH,
+                BFIConstants.HOUSE_EDGE_BPS,
+                BFIConstants.WIN_MULTIPLIER_BPS
+        );
+    }
+
+    public BigDecimal getMinBetEth() { return minBetEth; }
+    public BigDecimal getMaxBetEth() { return maxBetEth; }
+    public int getHouseEdgeBps() { return houseEdgeBps; }
+    public int getWinMultiplierBps() { return winMultiplierBps; }
+}
+
+final class FlipSession {
+    private final String sessionId;
+    private final String playerId;
+    private final long startedAtMs;
+    private long flipCount;
+    private BigDecimal sessionWagered;
+    private BigDecimal sessionPayouts;
+
+    FlipSession(String sessionId, String playerId) {
+        this.sessionId = sessionId;
+        this.playerId = playerId;
+        this.startedAtMs = System.currentTimeMillis();
+        this.flipCount = 0;
+        this.sessionWagered = BigDecimal.ZERO;
+        this.sessionPayouts = BigDecimal.ZERO;
+    }
+
+    void recordFlip(BigDecimal wager, BigDecimal payout) {
