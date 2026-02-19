@@ -526,3 +526,51 @@ final class SatoshiFlipperMemeMessages {
     static String onWin() {
         return WIN_MSGS[ThreadLocalRandom.current().nextInt(WIN_MSGS.length)];
     }
+
+    static String onLoss() {
+        return LOSS_MSGS[ThreadLocalRandom.current().nextInt(LOSS_MSGS.length)];
+    }
+}
+
+final class BFIWeiConverter {
+    private static final BigInteger WEI_PER_ETH = BigInteger.TEN.pow(18);
+
+    static BigInteger ethToWeiExact(BigDecimal eth) {
+        return eth.multiply(new BigDecimal(WEI_PER_ETH)).toBigInteger();
+    }
+
+    static BigDecimal weiToEthExact(BigInteger wei) {
+        return new BigDecimal(wei).divide(new BigDecimal(WEI_PER_ETH), 18, RoundingMode.DOWN);
+    }
+}
+
+final class LeaderboardEntry {
+    private final int rank;
+    private final String playerId;
+    private final String displayName;
+    private final long wins;
+    private final long flips;
+    private final BigDecimal wageredEth;
+    private final BigDecimal netProfitEth;
+    private final double winRatePct;
+
+    LeaderboardEntry(int rank, String playerId, String displayName, long wins, long flips,
+                    BigDecimal wageredEth, BigDecimal netProfitEth, double winRatePct) {
+        this.rank = rank;
+        this.playerId = playerId;
+        this.displayName = displayName;
+        this.wins = wins;
+        this.flips = flips;
+        this.wageredEth = wageredEth;
+        this.netProfitEth = netProfitEth;
+        this.winRatePct = winRatePct;
+    }
+
+    public int getRank() { return rank; }
+    public String getPlayerId() { return playerId; }
+    public String getDisplayName() { return displayName; }
+    public long getWins() { return wins; }
+    public long getFlips() { return flips; }
+    public BigDecimal getWageredEth() { return wageredEth; }
+    public BigDecimal getNetProfitEth() { return netProfitEth; }
+    public double getWinRatePct() { return winRatePct; }
