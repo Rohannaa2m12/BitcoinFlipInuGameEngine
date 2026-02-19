@@ -862,3 +862,51 @@ final class FlipInuImport {
             return null;
         }
     }
+}
+
+final class BFIEventBus {
+    private final List<BFIEventListener> listeners = Collections.synchronizedList(new ArrayList<>());
+
+    interface BFIEventListener {
+        void onFlipResolved(FlipRound r);
+    }
+
+    void subscribe(BFIEventListener l) {
+        listeners.add(l);
+    }
+
+    void publish(FlipRound r) {
+        synchronized (listeners) {
+            for (BFIEventListener l : listeners) {
+                try {
+                    l.onFlipResolved(r);
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+}
+
+final class FlipInuMetrics {
+    private long totalFlips;
+    private long totalWins;
+    private BigDecimal totalWagered;
+    private BigDecimal totalPayouts;
+    private final Map<GameTier, Long> flipsByTier = new ConcurrentHashMap<>();
+
+    FlipInuMetrics() {
+        this.totalFlips = 0;
+        this.totalWins = 0;
+        this.totalWagered = BigDecimal.ZERO;
+        this.totalPayouts = BigDecimal.ZERO;
+        for (GameTier t : GameTier.values()) flipsByTier.put(t, 0L);
+    }
+
+    synchronized void record(FlipRound r) {
+        totalFlips++;
+        if (r.isWon()) totalWins++;
+        totalWagered = totalWagered.add(r.getWagerEth());
+        totalPayouts = totalPayouts.add(r.getPayoutEth());
+        GameTier tier = GameTier.forWager(r.getWagerEth());
+        flipsByTier.merge(tier, 1L, Long::sum);
+    }
+
