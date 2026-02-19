@@ -766,3 +766,51 @@ final class SatoshiFlipperCLI {
             return;
         }
         BigDecimal wager;
+        try {
+            wager = new BigDecimal(parts[0]);
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid wager.");
+            return;
+        }
+        FlipOutcome choice = parts[1].toLowerCase().startsWith("t") ? FlipOutcome.TAILS : FlipOutcome.HEADS;
+        String playerId = parts.length > 2 ? parts[2] : "0xCLI_" + System.currentTimeMillis();
+        try {
+            FlipRound r = engine.executeFlip(playerId, "CLI", wager, choice);
+            System.out.println(FlipInuFormatters.roundSummary(r));
+            System.out.println(r.isWon() ? SatoshiFlipperMemeMessages.onWin() : SatoshiFlipperMemeMessages.onLoss());
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+}
+
+// ==================== Extended simulation and analytics ====================
+
+final class FlipInuMonteCarlo {
+    private final int iterations;
+    private final Random rng;
+
+    FlipInuMonteCarlo(int iterations, Random rng) {
+        this.iterations = iterations;
+        this.rng = rng;
+    }
+
+    double expectedValuePerFlipEth() {
+        double houseEdge = BFIConstants.HOUSE_EDGE_BPS / (double) BFIConstants.BPS_DENOM;
+        double winChance = 0.5;
+        double winMultiplier = BFIConstants.WIN_MULTIPLIER_BPS / (double) BFIConstants.BPS_DENOM;
+        return -(houseEdge * (1 - winChance)) + (winChance * (winMultiplier - 1));
+    }
+
+    double runSimulationEv(BigDecimal wagerEth, int flips) {
+        BigDecimal totalProfit = BigDecimal.ZERO;
+        for (int i = 0; i < flips; i++) {
+            boolean win = rng.nextBoolean();
+            if (win) {
+                totalProfit = totalProfit.add(TreasuryMath.weiToEth(TreasuryMath.winPayoutWei(TreasuryMath.ethToWei(wagerEth))).subtract(wagerEth));
+            } else {
+                totalProfit = totalProfit.subtract(wagerEth);
+            }
+        }
+        return totalProfit.divide(BigDecimal.valueOf(flips), 10, RoundingMode.HALF_UP).doubleValue();
+    }
