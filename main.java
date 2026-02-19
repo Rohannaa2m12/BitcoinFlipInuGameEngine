@@ -1294,3 +1294,51 @@ final class StreakBonusCalculatorV2 {
 /** V2: Configuration overrides for engine (min/max bet, house edge, etc.). */
 final class FlipInuV2Config {
     private final BigDecimal minBetEth;
+    private final BigDecimal maxBetEth;
+    private final int houseEdgeBps;
+    private final boolean doubleFlipEnabled;
+    private final boolean streakBonusEnabled;
+
+    FlipInuV2Config(BigDecimal minBetEth, BigDecimal maxBetEth, int houseEdgeBps,
+                   boolean doubleFlipEnabled, boolean streakBonusEnabled) {
+        this.minBetEth = minBetEth;
+        this.maxBetEth = maxBetEth;
+        this.houseEdgeBps = houseEdgeBps;
+        this.doubleFlipEnabled = doubleFlipEnabled;
+        this.streakBonusEnabled = streakBonusEnabled;
+    }
+
+    public static FlipInuV2Config defaultV2() {
+        return new FlipInuV2Config(
+                BFIConstants.MIN_BET_ETH,
+                BFIConstants.MAX_BET_ETH,
+                BFIConstants.HOUSE_EDGE_BPS,
+                false,
+                true
+        );
+    }
+
+    public BigDecimal getMinBetEth() { return minBetEth; }
+    public BigDecimal getMaxBetEth() { return maxBetEth; }
+    public int getHouseEdgeBps() { return houseEdgeBps; }
+    public boolean isDoubleFlipEnabled() { return doubleFlipEnabled; }
+    public boolean isStreakBonusEnabled() { return streakBonusEnabled; }
+}
+
+/** V2: Tracks recent streak lengths for analytics. */
+final class RecentStreakRecord {
+    private final long timestampMs;
+    private final boolean wasWin;
+    private final long streakLength;
+
+    RecentStreakRecord(long timestampMs, boolean wasWin, long streakLength) {
+        this.timestampMs = timestampMs;
+        this.wasWin = wasWin;
+        this.streakLength = streakLength;
+    }
+
+    public long getTimestampMs() { return timestampMs; }
+    public boolean wasWin() { return wasWin; }
+    public long getStreakLength() { return streakLength; }
+}
+
