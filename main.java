@@ -478,3 +478,51 @@ final class FlipInuValidator {
     static boolean isValidPlayerId(String id) {
         return id != null && id.length() >= 2 && id.length() <= 64;
     }
+
+    static String sanitizeDisplayName(String name) {
+        if (name == null) return "Anon";
+        String s = name.trim();
+        if (s.isEmpty()) return "Anon";
+        return s.length() > 24 ? s.substring(0, 24) : s;
+    }
+}
+
+final class FlipInuFormatters {
+    static String formatEth(BigDecimal eth) {
+        return eth.setScale(4, RoundingMode.HALF_UP).toPlainString() + " ETH";
+    }
+
+    static String formatWinRate(double rate) {
+        return String.format("%.2f%%", rate);
+    }
+
+    static String formatStreak(long streak) {
+        return streak + "x";
+    }
+
+    static String roundSummary(FlipRound r) {
+        return String.format("#%d %s %s → %s %s (payout %s)",
+                r.getRoundId(), r.getPlayerId(), r.getChoice().getLabel(), r.getOutcome().getLabel(),
+                r.isWon() ? "WIN" : "LOSS", FlipInuFormatters.formatEth(r.getPayoutEth()));
+    }
+}
+
+final class SatoshiFlipperMemeMessages {
+    private static final String[] WIN_MSGS = {
+            "WAGMI! Satoshi smiles upon you.",
+            "Diamond paws. You won.",
+            "To the moon, one flip at a time.",
+            "Inu says: much win, very flip.",
+            "Based. You picked the right side."
+    };
+    private static final String[] LOSS_MSGS = {
+            "NGMI this time. Flip again.",
+            "Paper paws. Try tails next.",
+            "House always has an edge. One more?",
+            "Inu says: such loss, wow. Flip again.",
+            "Unbased. But the next flip is 50/50."
+    };
+
+    static String onWin() {
+        return WIN_MSGS[ThreadLocalRandom.current().nextInt(WIN_MSGS.length)];
+    }
