@@ -142,3 +142,51 @@ final class FlipRound {
                 roundId, playerId, wagerEth, choice.getLabel(), outcome.getLabel(), won, payoutEth);
     }
 }
+
+// ==================== Player profile ====================
+
+final class PlayerProfile {
+    private final String id;
+    private final String displayName;
+    private final AtomicLong totalFlips;
+    private final AtomicLong totalWins;
+    private final AtomicLong currentWinStreak;
+    private final AtomicLong currentLossStreak;
+    private final AtomicLong maxWinStreak;
+    private final AtomicLong maxLossStreak;
+    private volatile BigDecimal totalWageredEth;
+    private volatile BigDecimal totalPayoutEth;
+    private volatile long lastFlipMs;
+    private final List<FlipRound> recentRounds;
+
+    PlayerProfile(String id, String displayName) {
+        this.id = id;
+        this.displayName = displayName;
+        this.totalFlips = new AtomicLong(0);
+        this.totalWins = new AtomicLong(0);
+        this.currentWinStreak = new AtomicLong(0);
+        this.currentLossStreak = new AtomicLong(0);
+        this.maxWinStreak = new AtomicLong(0);
+        this.maxLossStreak = new AtomicLong(0);
+        this.totalWageredEth = BigDecimal.ZERO;
+        this.totalPayoutEth = BigDecimal.ZERO;
+        this.lastFlipMs = 0;
+        this.recentRounds = Collections.synchronizedList(new ArrayList<>());
+    }
+
+    public String getId() { return id; }
+    public String getDisplayName() { return displayName; }
+    public long getTotalFlips() { return totalFlips.get(); }
+    public long getTotalWins() { return totalWins.get(); }
+    public long getCurrentWinStreak() { return currentWinStreak.get(); }
+    public long getCurrentLossStreak() { return currentLossStreak.get(); }
+    public long getMaxWinStreak() { return maxWinStreak.get(); }
+    public long getMaxLossStreak() { return maxLossStreak.get(); }
+    public BigDecimal getTotalWageredEth() { return totalWageredEth; }
+    public BigDecimal getTotalPayoutEth() { return totalPayoutEth; }
+    public long getLastFlipMs() { return lastFlipMs; }
+
+    public BigDecimal getNetProfitEth() {
+        return totalPayoutEth.subtract(totalWageredEth);
+    }
+
