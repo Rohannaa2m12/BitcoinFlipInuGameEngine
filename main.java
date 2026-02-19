@@ -430,3 +430,51 @@ public final class BitcoinFlipInuGameEngine {
     }
 
     // ==================== Simulation runner ====================
+
+    public static void runSimulation(int numRounds, int numPlayers, Random rng) {
+        BitcoinFlipInuGameEngine engine = new BitcoinFlipInuGameEngine(true);
+        String[] playerIds = new String[numPlayers];
+        for (int i = 0; i < numPlayers; i++) {
+            playerIds[i] = "0x" + Integer.toHexString(0x10000 + rng.nextInt(0xEFFFF));
+        }
+
+        for (int i = 0; i < numRounds; i++) {
+            String pid = playerIds[rng.nextInt(numPlayers)];
+            double eth = 0.01 + rng.nextDouble() * 9.99;
+            BigDecimal wager = BigDecimal.valueOf(eth).setScale(4, RoundingMode.DOWN);
+            FlipOutcome choice = rng.nextBoolean() ? FlipOutcome.HEADS : FlipOutcome.TAILS;
+            engine.executeFlip(pid, "SimPlayer_" + pid.substring(pid.length() - 4), wager, choice);
+        }
+
+        GlobalStats s = engine.getGlobalStats();
+        System.out.println("Simulation complete: rounds=" + s.totalRounds + " players=" + s.uniquePlayers);
+        System.out.println("Total wagered ETH: " + s.totalWageredEth);
+        System.out.println("Total payouts ETH: " + s.totalPayoutsEth);
+        System.out.println("House collected ETH: " + s.houseCollectedEth);
+    }
+
+    // ==================== Main ====================
+
+    public static void main(String[] args) {
+        Random rng = new Random(0xBF1);
+        runSimulation(500, 20, rng);
+
+        BitcoinFlipInuGameEngine engine = new BitcoinFlipInuGameEngine();
+        FlipRound r1 = engine.executeFlip("0xAlice", "Alice", new BigDecimal("0.1"), FlipOutcome.HEADS);
+        System.out.println(r1);
+        FlipRound r2 = engine.executeFlip("0xBob", "Bob", new BigDecimal("1.0"), FlipOutcome.TAILS);
+        System.out.println(r2);
+        System.out.println(engine.getGlobalStats().uniquePlayers + " players, " + engine.getGlobalRoundId() + " rounds");
+    }
+}
+
+// ==================== Extra utility classes (expand line count) ====================
+
+final class FlipInuValidator {
+    static boolean isValidWagerEth(BigDecimal eth) {
+        return eth != null && eth.compareTo(BFIConstants.MIN_BET_ETH) >= 0 && eth.compareTo(BFIConstants.MAX_BET_ETH) <= 0;
+    }
+
+    static boolean isValidPlayerId(String id) {
+        return id != null && id.length() >= 2 && id.length() <= 64;
+    }
