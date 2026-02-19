@@ -1438,3 +1438,38 @@ final class FlipInuV2Export {
                     e.getRank(), escape(e.getPlayerId()), escape(e.getDisplayName()),
                     e.getWins(), e.getFlips(), e.getWageredEth().toPlainString(),
                     e.getNetProfitEth().toPlainString(), e.getWinRatePct()));
+        }
+        return sb.toString();
+    }
+
+    private static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+}
+
+/** V2: Health check with version and config info. */
+final class FlipInuHealthCheckV2 {
+    private final BitcoinFlipInuGameEngine engine;
+    private final FlipInuV2Config config;
+
+    FlipInuHealthCheckV2(BitcoinFlipInuGameEngine engine, FlipInuV2Config config) {
+        this.engine = engine;
+        this.config = config;
+    }
+
+    boolean isHealthy() {
+        try {
+            BitcoinFlipInuGameEngine.GlobalStats s = engine.getGlobalStats();
+            return s.totalRounds >= 0 && s.uniquePlayers >= 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    String report() {
+        return String.format("BFI V2 health: ok=%s, version=%s, doubleFlip=%s, streakBonus=%s",
+                isHealthy(), BFIProtocolVersionV2.string(),
+                config.isDoubleFlipEnabled(), config.isStreakBonusEnabled());
+    }
+}
