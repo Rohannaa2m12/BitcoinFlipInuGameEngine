@@ -1246,3 +1246,51 @@ final class DoubleFlipRound {
     private final FlipOutcome outcome2;
     private final int wins; // 0, 1, or 2
     private final BigDecimal payoutEth;
+    private final long resolvedAtMs;
+
+    DoubleFlipRound(long roundId, String playerId, BigDecimal wagerEth,
+                   FlipOutcome choice1, FlipOutcome choice2,
+                   FlipOutcome outcome1, FlipOutcome outcome2,
+                   int wins, BigDecimal payoutEth, long resolvedAtMs) {
+        this.roundId = roundId;
+        this.playerId = playerId;
+        this.wagerEth = wagerEth;
+        this.choice1 = choice1;
+        this.choice2 = choice2;
+        this.outcome1 = outcome1;
+        this.outcome2 = outcome2;
+        this.wins = wins;
+        this.payoutEth = payoutEth;
+        this.resolvedAtMs = resolvedAtMs;
+    }
+
+    public long getRoundId() { return roundId; }
+    public String getPlayerId() { return playerId; }
+    public BigDecimal getWagerEth() { return wagerEth; }
+    public FlipOutcome getChoice1() { return choice1; }
+    public FlipOutcome getChoice2() { return choice2; }
+    public FlipOutcome getOutcome1() { return outcome1; }
+    public FlipOutcome getOutcome2() { return outcome2; }
+    public int getWins() { return wins; }
+    public BigDecimal getPayoutEth() { return payoutEth; }
+    public long getResolvedAtMs() { return resolvedAtMs; }
+    public boolean isDoubleWin() { return wins == 2; }
+}
+
+/** V2: Computes streak-based bonus multiplier (e.g. 3+ wins = small bonus). */
+final class StreakBonusCalculatorV2 {
+    static BigDecimal multiplierForWinStreak(long winStreak) {
+        if (winStreak < BFIConstantsV2.STREAK_BONUS_WIN_THRESHOLD) return BigDecimal.ONE;
+        long extra = winStreak - BFIConstantsV2.STREAK_BONUS_WIN_THRESHOLD;
+        int bps = (int) Math.min(extra * BFIConstantsV2.STREAK_BONUS_BPS, 500);
+        return BigDecimal.ONE.add(BigDecimal.valueOf(bps).divide(BigDecimal.valueOf(10000), 4, RoundingMode.DOWN));
+    }
+
+    static BigDecimal applyStreakBonus(BigDecimal basePayout, long winStreak) {
+        return basePayout.multiply(multiplierForWinStreak(winStreak)).setScale(18, RoundingMode.DOWN);
+    }
+}
+
+/** V2: Configuration overrides for engine (min/max bet, house edge, etc.). */
+final class FlipInuV2Config {
+    private final BigDecimal minBetEth;
