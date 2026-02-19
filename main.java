@@ -286,3 +286,51 @@ final class TreasuryMath {
 
     static BigDecimal weiToEth(BigDecimal wei) {
         return wei.divide(BigDecimal.TEN.pow(BFIConstants.SATOSHI_DECIMALS), 18, RoundingMode.DOWN);
+    }
+
+    private TreasuryMath() {}
+}
+
+// ==================== Game engine core ====================
+
+public final class BitcoinFlipInuGameEngine {
+    private final AtomicLong globalRoundId = new AtomicLong(0);
+    private final Map<String, PlayerProfile> players = new ConcurrentHashMap<>();
+    private final List<FlipRound> globalHistory = Collections.synchronizedList(new ArrayList<>());
+    private volatile BigDecimal totalWageredEth = BigDecimal.ZERO;
+    private volatile BigDecimal totalPayoutsEth = BigDecimal.ZERO;
+    private volatile BigDecimal houseCollectedEth = BigDecimal.ZERO;
+    private final boolean useDeterministicEntropy;
+
+    public BitcoinFlipInuGameEngine(boolean useDeterministicEntropy) {
+        this.useDeterministicEntropy = useDeterministicEntropy;
+    }
+
+    public BitcoinFlipInuGameEngine() {
+        this(false);
+    }
+
+    public PlayerProfile getOrCreatePlayer(String id, String displayName) {
+        return players.computeIfAbsent(id, k -> new PlayerProfile(k, displayName != null ? displayName : "Player_" + id.hashCode()));
+    }
+
+    public Optional<PlayerProfile> getPlayer(String id) {
+        return Optional.ofNullable(players.get(id));
+    }
+
+    public FlipRound executeFlip(String playerId, String displayName, BigDecimal wagerEth, FlipOutcome choice) {
+        if (wagerEth.compareTo(BFIConstants.MIN_BET_ETH) < 0) {
+            throw new IllegalArgumentException("Wager below minimum: " + BFIConstants.MIN_BET_ETH);
+        }
+        if (wagerEth.compareTo(BFIConstants.MAX_BET_ETH) > 0) {
+            throw new IllegalArgumentException("Wager above maximum: " + BFIConstants.MAX_BET_ETH);
+        }
+
+        long roundId = globalRoundId.incrementAndGet();
+        long now = System.currentTimeMillis();
+        FlipOutcome outcome = useDeterministicEntropy
+                ? new FlipEntropy(roundId, playerId, now).resolve()
+                : FlipEntropy.resolveWithRandom();
+
+        boolean won = (choice == outcome);
+        BigDecimal wagerWei = TreasuryMath.ethToWei(wagerEth);
