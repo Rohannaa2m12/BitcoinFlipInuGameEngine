@@ -718,3 +718,51 @@ final class FlipInuHealthCheck {
     }
 }
 
+final class SatoshiFlipperCLI {
+    private final BitcoinFlipInuGameEngine engine;
+    private final Scanner scanner;
+
+    SatoshiFlipperCLI(BitcoinFlipInuGameEngine engine, Scanner scanner) {
+        this.engine = engine;
+        this.scanner = scanner;
+    }
+
+    void runInteractive() {
+        System.out.println("Satoshi Flipper — Bitcoin Flip Inu. Type 'flip', 'stats', 'leaderboard', 'quit'.");
+        while (true) {
+            String line = scanner.nextLine();
+            if (line == null) break;
+            line = line.trim().toLowerCase();
+            if (line.isEmpty()) continue;
+            if (line.equals("quit") || line.equals("exit")) break;
+            if (line.equals("stats")) printStats();
+            else if (line.equals("leaderboard")) printLeaderboard();
+            else if (line.startsWith("flip ")) doFlip(line.substring(5).trim());
+            else System.out.println("Unknown command.");
+        }
+    }
+
+    private void printStats() {
+        GlobalStats s = engine.getGlobalStats();
+        System.out.println("Total rounds: " + s.totalRounds);
+        System.out.println("Unique players: " + s.uniquePlayers);
+        System.out.println("Total wagered: " + s.totalWageredEth + " ETH");
+        System.out.println("Total payouts: " + s.totalPayoutsEth + " ETH");
+        System.out.println("House collected: " + s.houseCollectedEth + " ETH");
+    }
+
+    private void printLeaderboard() {
+        List<PlayerProfile> top = engine.getLeaderboardByWins(10);
+        for (int i = 0; i < top.size(); i++) {
+            PlayerProfile p = top.get(i);
+            System.out.println((i + 1) + ". " + p.getDisplayName() + " wins=" + p.getTotalWins() + " flips=" + p.getTotalFlips() + " winRate=" + String.format("%.1f%%", p.getWinRate()));
+        }
+    }
+
+    private void doFlip(String arg) {
+        String[] parts = arg.split("\\s+");
+        if (parts.length < 2) {
+            System.out.println("Usage: flip <0.01-10 ETH> <heads|tails> [playerId]");
+            return;
+        }
+        BigDecimal wager;
