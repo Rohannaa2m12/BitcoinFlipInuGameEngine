@@ -238,3 +238,51 @@ final class FlipEntropy {
     private final MessageDigest digest;
     private final long roundId;
     private final String playerId;
+    private final long timestampMs;
+    private final String domainSeed;
+
+    FlipEntropy(long roundId, String playerId, long timestampMs) {
+        try {
+            this.digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 required", e);
+        }
+        this.roundId = roundId;
+        this.playerId = playerId;
+        this.timestampMs = timestampMs;
+        this.domainSeed = BFIConstants.DOMAIN_SEED;
+    }
+
+    FlipOutcome resolve() {
+        byte[] input = (roundId + "|" + playerId + "|" + timestampMs + "|" + domainSeed + "|" + System.nanoTime()).getBytes();
+        byte[] hash = digest.digest(input);
+        int lsb = hash[hash.length - 1] & 1;
+        return FlipOutcome.fromCode(lsb);
+    }
+
+    static FlipOutcome resolveWithRandom() {
+        return FlipOutcome.random();
+    }
+}
+
+// ==================== Treasury math ====================
+
+final class TreasuryMath {
+    static BigDecimal houseEdgeWei(BigDecimal wagerWei) {
+        return wagerWei
+                .multiply(BigDecimal.valueOf(BFIConstants.HOUSE_EDGE_BPS))
+                .divide(BigDecimal.valueOf(BFIConstants.BPS_DENOM), 18, RoundingMode.DOWN);
+    }
+
+    static BigDecimal winPayoutWei(BigDecimal wagerWei) {
+        return wagerWei
+                .multiply(BigDecimal.valueOf(BFIConstants.WIN_MULTIPLIER_BPS))
+                .divide(BigDecimal.valueOf(BFIConstants.BPS_DENOM), 18, RoundingMode.DOWN);
+    }
+
+    static BigDecimal ethToWei(BigDecimal eth) {
+        return eth.multiply(BigDecimal.TEN.pow(BFIConstants.SATOSHI_DECIMALS));
+    }
+
+    static BigDecimal weiToEth(BigDecimal wei) {
+        return wei.divide(BigDecimal.TEN.pow(BFIConstants.SATOSHI_DECIMALS), 18, RoundingMode.DOWN);
