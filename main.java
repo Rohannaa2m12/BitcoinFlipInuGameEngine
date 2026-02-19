@@ -814,3 +814,51 @@ final class FlipInuMonteCarlo {
         }
         return totalProfit.divide(BigDecimal.valueOf(flips), 10, RoundingMode.HALF_UP).doubleValue();
     }
+}
+
+final class FlipInuTimeSeries {
+    private final List<Long> timestamps = Collections.synchronizedList(new ArrayList<>());
+    private final List<BigDecimal> wageredSnapshots = Collections.synchronizedList(new ArrayList<>());
+
+    void recordSnapshot(long ts, BigDecimal totalWagered) {
+        timestamps.add(ts);
+        wageredSnapshots.add(totalWagered);
+    }
+
+    List<BigDecimal> getWageredSnapshots() {
+        synchronized (wageredSnapshots) {
+            return new ArrayList<>(wageredSnapshots);
+        }
+    }
+}
+
+final class FlipInuExport {
+    static String toCsvRow(FlipRound r) {
+        return String.format("%d,%s,%s,%s,%s,%s,%d",
+                r.getRoundId(), r.getPlayerId(), r.getWagerEth(), r.getChoice().getLabel(),
+                r.getOutcome().getLabel(), r.isWon(), r.getResolvedAtMs());
+    }
+
+    static String csvHeader() {
+        return "roundId,playerId,wagerEth,choice,outcome,won,resolvedAtMs";
+    }
+}
+
+final class FlipInuImport {
+    static FlipRound fromCsvRow(String line) {
+        String[] cols = line.split(",", -1);
+        if (cols.length < 7) return null;
+        try {
+            long id = Long.parseLong(cols[0]);
+            String playerId = cols[1];
+            BigDecimal wager = new BigDecimal(cols[2]);
+            FlipOutcome choice = "TAILS".equals(cols[3]) ? FlipOutcome.TAILS : FlipOutcome.HEADS;
+            FlipOutcome outcome = "TAILS".equals(cols[4]) ? FlipOutcome.TAILS : FlipOutcome.HEADS;
+            boolean won = Boolean.parseBoolean(cols[5]);
+            long ts = Long.parseLong(cols[6]);
+            BigDecimal payout = won ? TreasuryMath.weiToEth(TreasuryMath.winPayoutWei(TreasuryMath.ethToWei(wager))) : BigDecimal.ZERO;
+            return new FlipRound(id, playerId, wager, choice, outcome, won, payout, ts);
+        } catch (Exception e) {
+            return null;
+        }
+    }
