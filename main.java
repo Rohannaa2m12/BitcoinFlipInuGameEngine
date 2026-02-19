@@ -1150,3 +1150,51 @@ final class FlipInuValidationResult {
 
     FlipInuValidationResult(boolean valid, int errorCode, String message) {
         this.valid = valid;
+        this.errorCode = errorCode;
+        this.message = message;
+    }
+
+    static FlipInuValidationResult ok() {
+        return new FlipInuValidationResult(true, 0, null);
+    }
+
+    static FlipInuValidationResult fail(int code, String msg) {
+        return new FlipInuValidationResult(false, code, msg);
+    }
+
+    public boolean isValid() { return valid; }
+    public int getErrorCode() { return errorCode; }
+    public String getMessage() { return message; }
+}
+
+final class FlipInuValidationService {
+    static FlipInuValidationResult validateFlip(String playerId, BigDecimal wagerEth, boolean paused) {
+        if (paused) return FlipInuValidationResult.fail(FlipInuErrorCodes.ERR_PAUSED, "Contract paused");
+        if (!FlipInuValidator.isValidPlayerId(playerId)) return FlipInuValidationResult.fail(FlipInuErrorCodes.ERR_INVALID_PLAYER, "Invalid player");
+        if (wagerEth == null || wagerEth.compareTo(BigDecimal.ZERO) <= 0) return FlipInuValidationResult.fail(FlipInuErrorCodes.ERR_ZERO_BET, "Zero bet");
+        if (wagerEth.compareTo(BFIConstants.MIN_BET_ETH) < 0) return FlipInuValidationResult.fail(FlipInuErrorCodes.ERR_BET_TOO_LOW, "Bet too low");
+        if (wagerEth.compareTo(BFIConstants.MAX_BET_ETH) > 0) return FlipInuValidationResult.fail(FlipInuErrorCodes.ERR_BET_TOO_HIGH, "Bet too high");
+        return FlipInuValidationResult.ok();
+    }
+}
+
+final class FlipInuAggregator {
+    private final BitcoinFlipInuGameEngine engine;
+
+    FlipInuAggregator(BitcoinFlipInuGameEngine engine) {
+        this.engine = engine;
+    }
+
+    List<LeaderboardEntry> buildLeaderboardByWins(int limit) {
+        List<PlayerProfile> profiles = engine.getLeaderboardByWins(limit);
+        List<LeaderboardEntry> entries = new ArrayList<>();
+        for (int i = 0; i < profiles.size(); i++) {
+            PlayerProfile p = profiles.get(i);
+            entries.add(new LeaderboardEntry(
+                    i + 1, p.getId(), p.getDisplayName(),
+                    p.getTotalWins(), p.getTotalFlips(),
+                    p.getTotalWageredEth(), p.getNetProfitEth(), p.getWinRate()
+            ));
+        }
+        return entries;
+    }
