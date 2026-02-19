@@ -910,3 +910,51 @@ final class FlipInuMetrics {
         flipsByTier.merge(tier, 1L, Long::sum);
     }
 
+    public long getTotalFlips() { return totalFlips; }
+    public long getTotalWins() { return totalWins; }
+    public BigDecimal getTotalWagered() { return totalWagered; }
+    public BigDecimal getTotalPayouts() { return totalPayouts; }
+    public Map<GameTier, Long> getFlipsByTier() { return new HashMap<>(flipsByTier); }
+}
+
+final class FlipInuCache {
+    private final Map<String, PlayerProfile> cache = new ConcurrentHashMap<>();
+    private final long ttlMs;
+    private final Map<String, Long> expiry = new ConcurrentHashMap<>();
+
+    FlipInuCache(long ttlMs) {
+        this.ttlMs = ttlMs;
+    }
+
+    void put(String key, PlayerProfile profile) {
+        cache.put(key, profile);
+        expiry.put(key, System.currentTimeMillis() + ttlMs);
+    }
+
+    PlayerProfile get(String key) {
+        Long exp = expiry.get(key);
+        if (exp != null && System.currentTimeMillis() > exp) {
+            cache.remove(key);
+            expiry.remove(key);
+            return null;
+        }
+        return cache.get(key);
+    }
+}
+
+final class SatoshiFlipperPromo {
+    private static final double BONUS_FLIP_CHANCE = 0.01;
+
+    static boolean triggersBonusFlip(Random rng) {
+        return rng.nextDouble() < BONUS_FLIP_CHANCE;
+    }
+
+    static BigDecimal bonusMultiplier(GameTier tier) {
+        switch (tier) {
+            case SATOSHI: return new BigDecimal("1.05");
+            case WHALE: return new BigDecimal("1.02");
+            default: return BigDecimal.ONE;
+        }
+    }
+}
+
