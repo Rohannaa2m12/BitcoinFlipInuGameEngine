@@ -958,3 +958,51 @@ final class SatoshiFlipperPromo {
     }
 }
 
+final class FlipInuNonceGenerator {
+    private final AtomicLong counter = new AtomicLong(0);
+
+    long next() {
+        return counter.incrementAndGet();
+    }
+
+    void reset() {
+        counter.set(0);
+    }
+}
+
+final class FlipInuHashUtil {
+    static String sha256Hex(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    static int hashToInt(String input) {
+        return Math.abs(sha256Hex(input).hashCode());
+    }
+}
+
+final class FlipInuScheduler {
+    private final List<Runnable> tasks = Collections.synchronizedList(new ArrayList<>());
+
+    void schedule(Runnable r) {
+        tasks.add(r);
+    }
+
+    void runAll() {
+        synchronized (tasks) {
+            for (Runnable r : tasks) {
+                try {
+                    r.run();
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+}
+
