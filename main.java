@@ -1054,3 +1054,51 @@ final class FlipInuBatchProcessor {
     private final BitcoinFlipInuGameEngine engine;
 
     FlipInuBatchProcessor(BitcoinFlipInuGameEngine engine) {
+        this.engine = engine;
+    }
+
+    List<FlipRound> processBatch(List<FlipRequest> requests) {
+        List<FlipRound> results = new ArrayList<>();
+        for (FlipRequest req : requests) {
+            try {
+                FlipRound r = engine.executeFlip(req.playerId, req.displayName, req.wagerEth, req.choice);
+                results.add(r);
+            } catch (Exception e) {
+                // skip invalid
+            }
+        }
+        return results;
+    }
+
+    static final class FlipRequest {
+        final String playerId;
+        final String displayName;
+        final BigDecimal wagerEth;
+        final FlipOutcome choice;
+
+        FlipRequest(String playerId, String displayName, BigDecimal wagerEth, FlipOutcome choice) {
+            this.playerId = playerId;
+            this.displayName = displayName;
+            this.wagerEth = wagerEth;
+            this.choice = choice;
+        }
+    }
+}
+
+final class FlipInuWebhookPayload {
+    private final long roundId;
+    private final String playerId;
+    private final boolean won;
+    private final BigDecimal payoutEth;
+
+    FlipInuWebhookPayload(long roundId, String playerId, boolean won, BigDecimal payoutEth) {
+        this.roundId = roundId;
+        this.playerId = playerId;
+        this.won = won;
+        this.payoutEth = payoutEth;
+    }
+
+    String toJson() {
+        return String.format("{\"roundId\":%d,\"playerId\":\"%s\",\"won\":%s,\"payoutEth\":\"%s\"}",
+                roundId, playerId, won, payoutEth.toPlainString());
+    }
