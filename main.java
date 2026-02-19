@@ -670,3 +670,51 @@ final class FlipInuRateLimiter {
         return (now - last) >= minIntervalMs;
     }
 }
+
+final class FlipInuPersistenceStub {
+    private final List<FlipRound> persistedRounds = Collections.synchronizedList(new ArrayList<>());
+
+    void persistRound(FlipRound r) {
+        persistedRounds.add(r);
+    }
+
+    List<FlipRound> getPersistedRounds(int limit) {
+        synchronized (persistedRounds) {
+            int from = Math.max(0, persistedRounds.size() - limit);
+            return new ArrayList<>(persistedRounds.subList(from, persistedRounds.size()));
+        }
+    }
+}
+
+final class BFIEncoding {
+    static String encodeRoundId(long id) {
+        return "BFI-" + Long.toHexString(id);
+    }
+
+    static long decodeRoundId(String encoded) {
+        if (encoded == null || !encoded.startsWith("BFI-")) return -1;
+        try {
+            return Long.parseLong(encoded.substring(4), 16);
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+}
+
+final class FlipInuHealthCheck {
+    private final BitcoinFlipInuGameEngine engine;
+
+    FlipInuHealthCheck(BitcoinFlipInuGameEngine engine) {
+        this.engine = engine;
+    }
+
+    boolean isHealthy() {
+        try {
+            GlobalStats s = engine.getGlobalStats();
+            return s.totalRounds >= 0 && s.uniquePlayers >= 0;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+}
+
