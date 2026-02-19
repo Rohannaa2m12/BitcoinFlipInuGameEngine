@@ -382,3 +382,51 @@ public final class BitcoinFlipInuGameEngine {
     }
 
     public List<PlayerProfile> getLeaderboardByWagered(int limit) {
+        return players.values().stream()
+                .sorted((a, b) -> b.getTotalWageredEth().compareTo(a.getTotalWageredEth()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<PlayerProfile> getLeaderboardByNetProfit(int limit) {
+        return players.values().stream()
+                .sorted((a, b) -> b.getNetProfitEth().compareTo(a.getNetProfitEth()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public BigDecimal getTotalWageredEth() { return totalWageredEth; }
+    public BigDecimal getTotalPayoutsEth() { return totalPayoutsEth; }
+    public BigDecimal getHouseCollectedEth() { return houseCollectedEth; }
+    public long getGlobalRoundId() { return globalRoundId.get(); }
+
+    // ==================== Stats aggregator ====================
+
+    public static final class GlobalStats {
+        public final long totalRounds;
+        public final BigDecimal totalWageredEth;
+        public final BigDecimal totalPayoutsEth;
+        public final BigDecimal houseCollectedEth;
+        public final int uniquePlayers;
+
+        GlobalStats(long totalRounds, BigDecimal totalWageredEth, BigDecimal totalPayoutsEth,
+                    BigDecimal houseCollectedEth, int uniquePlayers) {
+            this.totalRounds = totalRounds;
+            this.totalWageredEth = totalWageredEth;
+            this.totalPayoutsEth = totalPayoutsEth;
+            this.houseCollectedEth = houseCollectedEth;
+            this.uniquePlayers = uniquePlayers;
+        }
+    }
+
+    public GlobalStats getGlobalStats() {
+        return new GlobalStats(
+                globalRoundId.get(),
+                totalWageredEth,
+                totalPayoutsEth,
+                houseCollectedEth,
+                players.size()
+        );
+    }
+
+    // ==================== Simulation runner ====================
