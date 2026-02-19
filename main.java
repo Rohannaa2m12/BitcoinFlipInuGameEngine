@@ -1342,3 +1342,51 @@ final class RecentStreakRecord {
     public long getStreakLength() { return streakLength; }
 }
 
+/** V2: Extended engine wrapper that supports optional double-flip and streak bonuses. */
+final class BitcoinFlipInuGameEngineV2 {
+    private final BitcoinFlipInuGameEngine delegate;
+    private final FlipInuV2Config config;
+    private final List<RecentStreakRecord> recentStreaks = Collections.synchronizedList(new ArrayList<>());
+    private final AtomicLong doubleFlipNonce = new AtomicLong(0);
+
+    BitcoinFlipInuGameEngineV2(BitcoinFlipInuGameEngine delegate, FlipInuV2Config config) {
+        this.delegate = delegate;
+        this.config = config;
+    }
+
+    BitcoinFlipInuGameEngineV2(BitcoinFlipInuGameEngine delegate) {
+        this(delegate, FlipInuV2Config.defaultV2());
+    }
+
+    public FlipRound executeFlip(String playerId, String displayName, BigDecimal wagerEth, FlipOutcome choice) {
+        FlipRound r = delegate.executeFlip(playerId, displayName, wagerEth, choice);
+        if (config.isStreakBonusEnabled()) {
+            Optional<PlayerProfile> opt = delegate.getPlayer(playerId);
+            opt.ifPresent(p -> recordStreak(p.getCurrentWinStreak() > 0, p.getCurrentWinStreak()));
+        }
+        return r;
+    }
+
+    private void recordStreak(boolean isWinStreak, long length) {
+        if (length <= 0) return;
+        recentStreaks.add(new RecentStreakRecord(System.currentTimeMillis(), isWinStreak, length));
+        while (recentStreaks.size() > BFIConstantsV2.MAX_RECENT_STREAKS) {
+            recentStreaks.remove(0);
+        }
+    }
+
+    public DoubleFlipRound executeDoubleFlip(String playerId, String displayName, BigDecimal wagerEth,
+                                             FlipOutcome choice1, FlipOutcome choice2) {
+        if (!config.isDoubleFlipEnabled()) throw new IllegalStateException("Double flip not enabled");
+        if (wagerEth.compareTo(BFIConstantsV2.DOUBLE_FLIP_MIN_BET) < 0
+                || wagerEth.compareTo(BFIConstantsV2.DOUBLE_FLIP_MAX_BET) > 0) {
+            throw new IllegalArgumentException("Double flip wager must be 0.05–5 ETH");
+        }
+        long roundId = doubleFlipNonce.incrementAndGet();
+        long now = System.currentTimeMillis();
+        FlipEntropy e1 = new FlipEntropy(roundId * 2, playerId, now);
+        FlipEntropy e2 = new FlipEntropy(roundId * 2 + 1, playerId, now + 1);
+        FlipOutcome outcome1 = e1.resolve();
+        FlipOutcome outcome2 = e2.resolve();
+        int wins = (choice1 == outcome1 ? 1 : 0) + (choice2 == outcome2 ? 1 : 0);
+        BigDecimal payoutEth = BigDecimal.ZERO;
