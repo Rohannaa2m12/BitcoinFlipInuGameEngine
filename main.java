@@ -1198,3 +1198,51 @@ final class FlipInuAggregator {
         }
         return entries;
     }
+}
+
+final class BFIProtocolVersion {
+    static final int MAJOR = 1;
+    static final int MINOR = 0;
+    static final int PATCH = 0;
+
+    static String string() {
+        return MAJOR + "." + MINOR + "." + PATCH;
+    }
+}
+
+// ==================== V2 Upgrade (250+ lines) ====================
+
+final class BFIProtocolVersionV2 {
+    static final int MAJOR = 2;
+    static final int MINOR = 0;
+    static final int PATCH = 0;
+
+    static String string() {
+        return MAJOR + "." + MINOR + "." + PATCH;
+    }
+
+    static boolean isAtLeastV2() {
+        return true;
+    }
+}
+
+final class BFIConstantsV2 {
+    static final String DOMAIN_SEED_V2 = "BitcoinFlipInu.Satoshi.v2";
+    static final int STREAK_BONUS_WIN_THRESHOLD = 3;
+    static final int STREAK_BONUS_BPS = 50;
+    static final BigDecimal DOUBLE_FLIP_MIN_BET = new BigDecimal("0.05");
+    static final BigDecimal DOUBLE_FLIP_MAX_BET = new BigDecimal("5");
+    static final int MAX_RECENT_STREAKS = 10;
+}
+
+/** V2: A round that can represent a double-flip (two outcomes). */
+final class DoubleFlipRound {
+    private final long roundId;
+    private final String playerId;
+    private final BigDecimal wagerEth;
+    private final FlipOutcome choice1;
+    private final FlipOutcome choice2;
+    private final FlipOutcome outcome1;
+    private final FlipOutcome outcome2;
+    private final int wins; // 0, 1, or 2
+    private final BigDecimal payoutEth;
