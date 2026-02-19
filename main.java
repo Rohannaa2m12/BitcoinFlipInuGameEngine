@@ -1006,3 +1006,51 @@ final class FlipInuScheduler {
     }
 }
 
+final class BFIStateSnapshot {
+    private final long roundId;
+    private final BigDecimal totalWagered;
+    private final BigDecimal totalPayouts;
+    private final int playerCount;
+    private final long timestampMs;
+
+    BFIStateSnapshot(long roundId, BigDecimal totalWagered, BigDecimal totalPayouts, int playerCount, long timestampMs) {
+        this.roundId = roundId;
+        this.totalWagered = totalWagered;
+        this.totalPayouts = totalPayouts;
+        this.playerCount = playerCount;
+        this.timestampMs = timestampMs;
+    }
+
+    public long getRoundId() { return roundId; }
+    public BigDecimal getTotalWagered() { return totalWagered; }
+    public BigDecimal getTotalPayouts() { return totalPayouts; }
+    public int getPlayerCount() { return playerCount; }
+    public long getTimestampMs() { return timestampMs; }
+}
+
+final class FlipInuReplay {
+    private final List<FlipRound> rounds = Collections.synchronizedList(new ArrayList<>());
+
+    void add(FlipRound r) {
+        rounds.add(r);
+    }
+
+    List<FlipRound> getRounds() {
+        synchronized (rounds) {
+            return new ArrayList<>(rounds);
+        }
+    }
+
+    BigDecimal replayTotalWagered() {
+        return getRounds().stream().map(FlipRound::getWagerEth).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    long replayWinCount() {
+        return getRounds().stream().filter(FlipRound::isWon).count();
+    }
+}
+
+final class FlipInuBatchProcessor {
+    private final BitcoinFlipInuGameEngine engine;
+
+    FlipInuBatchProcessor(BitcoinFlipInuGameEngine engine) {
