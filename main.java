@@ -334,3 +334,51 @@ public final class BitcoinFlipInuGameEngine {
 
         boolean won = (choice == outcome);
         BigDecimal wagerWei = TreasuryMath.ethToWei(wagerEth);
+        BigDecimal payoutWei = won ? TreasuryMath.winPayoutWei(wagerWei) : BigDecimal.ZERO;
+        BigDecimal payoutEth = TreasuryMath.weiToEth(payoutWei);
+
+        PlayerProfile profile = getOrCreatePlayer(playerId, displayName);
+        if (won) {
+            profile.recordWin(wagerEth, payoutEth);
+        } else {
+            profile.recordLoss(wagerEth);
+        }
+
+        totalWageredEth = totalWageredEth.add(wagerEth);
+        totalPayoutsEth = totalPayoutsEth.add(payoutEth);
+        if (!won) {
+            BigDecimal houseTake = wagerEth.subtract(TreasuryMath.weiToEth(TreasuryMath.houseEdgeWei(wagerWei)));
+            houseCollectedEth = houseCollectedEth.add(houseTake);
+        }
+
+        FlipRound round = new FlipRound(roundId, playerId, wagerEth, choice, outcome, won, payoutEth, now);
+        profile.addRecentRound(round);
+        globalHistory.add(round);
+        trimGlobalHistory();
+
+        return round;
+    }
+
+    private void trimGlobalHistory() {
+        synchronized (globalHistory) {
+            while (globalHistory.size() > 2000) {
+                globalHistory.remove(0);
+            }
+        }
+    }
+
+    public List<FlipRound> getGlobalHistory(int limit) {
+        synchronized (globalHistory) {
+            int from = Math.max(0, globalHistory.size() - limit);
+            return new ArrayList<>(globalHistory.subList(from, globalHistory.size()));
+        }
+    }
+
+    public List<PlayerProfile> getLeaderboardByWins(int limit) {
+        return players.values().stream()
+                .sorted((a, b) -> Long.compare(b.getTotalWins(), a.getTotalWins()))
+                .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    public List<PlayerProfile> getLeaderboardByWagered(int limit) {
